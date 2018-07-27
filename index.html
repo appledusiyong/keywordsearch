@@ -1,0 +1,315 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <style>
+        div ul li {
+            margin: 0;
+            padding: 0;
+        }
+
+        ul {
+            padding: 0;
+        }
+
+        ul li {
+            list-style: none;
+        }
+
+        input {
+            border: none;
+        }
+
+        a {
+            text-decoration: none;
+            color:#000;
+        }
+
+        .xue-mall-header-search {
+            width: 600px;
+            margin: 0 auto;
+            position: relative;
+
+        }
+
+        .xue-mall-header-search .xue-mall-search-box .xue-mall-search-btn {
+            position: absolute;
+            right: 10px;
+            height: 32px;
+            top: 0px;
+            width: 70px;
+            line-height: 32px;
+            text-align: center;
+            cursor: pointer;
+            color: #333333;
+            font-size: 12px;
+
+        }
+
+        .xue-mall-header-search .xue-mall-search-box .search-input {
+            border: none;
+            border: 1px solid #ccc;
+            width: 100%;
+            height: 30px;
+            border-radius: 10px;
+            padding-left: 30px;
+            outline: medium;
+        }
+
+        .xue-mall-header-search .xue-mall-search-box .search-input.showing {
+            border-bottom: none;
+            padding-left: 12px;
+            transition: all 0.3s;
+        }
+
+        .xue-mall-header-search .xue-mall-search-box.xue-mall-search-showing {
+            border-radius: 20px 20px 0 0;
+            border-bottom-color: transparent;
+            transition: all 0.3s;
+        }
+
+        .search-Prefix-word {
+            z-index: 222;
+            background: #fff;
+            width: 100%;
+            margin-top: -8px;
+            box-sizing: border-box;
+            height: 0;
+            border-bottom-right-radius: 10px;
+            border-bottom-left-radius: 10px;
+            position: absolute;
+        }
+
+        .search-Prefix-word.hidding {
+            display: none;
+        }
+
+        .search-Prefix-word.showing {
+            display: block;
+            border: 1px solid #ccc;
+            border-top: none;
+
+        }
+
+        .search-Prefix-word ul li {
+            border-bottom: 0.5px solid #F1F1F1;
+            font-size: 14px;
+            line-height: 20px;
+            color: #999999;
+        }
+
+        .search-Prefix-word ul li {
+            display: block;
+            padding: 12px;
+        }
+
+        .search-Prefix-word ul li:first-child {
+            border-top: 1px solid #ccc;
+        }
+
+        .search-Prefix-word ul li:hover {
+            background: #e4e8e8;
+        }
+
+        .search-Prefix-word ul li.show {
+            background: #e4e8e8;
+        }
+
+        .search-Prefix-word ul li a .search-P-info {
+            color: #FF0021;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="xue-mall-header-search fr">
+        <div class="xue-mall-search-box">
+            <input type="text" class="search-input form-control" aria-describedby="icon-search" placeholder="搜索：语文" name="keyword" id="search-input"
+                autocomplete="off">
+            <span class="xue-mall-search-btn" id="xue-mall-search-btn">
+                <i class="iconfont icon-fangdajing">搜索图标</i>
+            </span>
+        </div>
+        <div class="search-Prefix-word hidding" id="search-Prefix-word">
+            <ul>
+                
+
+            </ul>
+
+        </div>
+    </div>
+
+</body>
+<script>
+    var $searchPrefixWord = $("#search-Prefix-word")
+    var $searchInput = $("#search-input")
+    var index = -1;
+    var  searchB = {
+          $searchPrefixWordUl: $(".search-Prefix-word ul"),
+          $searchInputBox : "#search-input"
+
+    }
+
+    var debounce = function (idle, action) {
+        var last
+        return function () {
+            var ctx = this,
+                args = arguments
+            clearTimeout(last)
+            last = setTimeout(function () {
+                action.apply(ctx, args)
+            }, idle)
+        }
+    }
+
+    var showList = function () {
+        var hotWord = $searchPrefixWord.find("ul");
+        var botWordLen = hotWord.find("li").length;
+        var inputVal = $searchInput.val()
+        if (inputVal != '' && botWordLen > 0) {
+            $searchPrefixWord.addClass("showing")
+            $searchInput.addClass("showing")
+            //计算历史记录弹层的高度，为了动画效果，默认的时候高度为0
+            var listHeight = hotWord.outerHeight(true);
+            //给列表框赋值高度
+            $searchPrefixWord.css({
+                height: listHeight
+            });
+        }
+    }
+    var handler = function (val) {
+        var inputValue = val;
+        if (inputValue === '') {
+            $searchPrefixWord.removeClass("showing")
+            $searchInput.removeClass("showing")
+
+        } else {
+            var param = {
+                keyword: inputValue
+            }
+            $.ajax({
+                // url: 'http://touch.xueersi.com/QuerySug/getQuerySug',
+                url: '/QuerySug/getQuerySug',
+                data: param,
+                type: "GET",
+                dataType: 'json',
+                success: function (resopnse) {
+                    $searchPrefixWord.find('ul li').remove();
+                    if (resopnse.stat === 1) {
+                        var data = resopnse.data.querySugList;
+                        // data = data.length > 10 ? data.slice(0, 9) : data;
+                        var total = data.length;
+                        var sub = function (inputStr, dbStr) {
+                            var re = new RegExp('(' + inputStr + ')', 'gi')
+                            return dbStr.replace(re, '<span class="search-P-info">$1</span>')
+                        }
+                        if (total > 0) {
+                            $searchPrefixWord.addClass("showing")
+                        } else {
+                            $searchPrefixWord.addClass("hidding")
+                        }
+                        var str = "";
+                        for (var i = 0; i < data.length; i++) {
+                            var item = sub(inputValue, data[i])
+                            str += ' <li><a href="http://touch.xueersi.com/search?keyword=' + data[i] + '"> ' + item + '</a>  </li>'
+
+                        }
+                        $searchPrefixWord.find("ul").append(str);
+                        showList()
+
+                    }
+                }
+            });
+        }
+
+
+
+    }
+    $(function () {
+        $(document).on('input propertychange',  search.$searchInputBox, debounce(100, function () {
+            handler($searchInput.val())
+        }))
+    })
+
+    //拼接请求地址
+    var search = function () {
+        var searchVal = $.trim($searchInput.val());
+        var url = 'XXXXX' + '?keyword=' + searchVal ;
+        window.location.href = url;
+    }
+
+    var getInputValue = function (obj) {
+        $searchInput.val($.trim(obj.find("a").text()))
+        $searchInput.removeClass("showing")
+        $searchPrefixWord.removeClass("showing")
+    }
+
+    //搜索框获取焦点事件
+    $('body').off('click', searchB.$searchInputBox, ).on('focus', searchB.$searchInputBox, function () {
+        showList()
+    })
+    // 点击联想词列表搜索事件
+    $(".xue-mall-header-search").on('click', 'li', function (ev) {
+        var that = $(this)
+        getInputValue(that)
+    })
+    //搜索框按keydown enter键事件
+    $('body').off('keydown', searchB.$searchInputBox).on('keydown', search.$searchInputBox, function (e) {
+        var liLen =  $($searchPrefixWord.find("ul")).find("li").length;
+        switch (e.keyCode) {
+            case 13:
+                if (index != -1) {
+                    var obj = $($($searchPrefixWord.find("ul")).find("li")[index])
+                    getInputValue(obj)
+                }
+                search();
+                break;
+            case 38:
+                if (index == -1 || index == 0) {
+                    index = liLen - 1
+                } else {
+                    index--
+                    if (index == liLen - 1) {
+                        index = 0
+                    }
+                }
+                $($($searchPrefixWord.find("ul")).find("li")[index]).addClass("show").siblings().removeClass("show");
+                break;
+            case 40:
+                if (index != -1) {
+                    index++;
+                    index = index == liLen ? 0 : index;
+                } else {
+                    index = index == -1 ? 0 : index;
+                }
+                $($($searchPrefixWord.find("ul")).find("li")[index]).addClass("show").siblings().removeClass("show")
+                break;
+        }
+    })
+     // hove联想词列表事件
+     $($($searchPrefixWord.find("ul")).find("li")).hover(function () {
+        index = $(this).index()
+        $($($searchPrefixWord.find("ul")).find("li")[index]).addClass("show").siblings().removeClass("show");
+    });
+
+    // 点击body隐藏联想词列表
+    $(document).on('click', function (e) {
+        var hotWord = $searchPrefixWord.find("ul");
+        var botWordLen = hotWord.find("li").length;
+        if (!($(e.target).hasClass("search-input"))) {
+            if (botWordLen > 0) {
+                $searchPrefixWord.removeClass("showing")
+                $searchPrefixWord.addClass("hidding")
+                $searchInput.removeClass("showing")
+            }
+        }
+
+    })
+</script>
+
+</html>
