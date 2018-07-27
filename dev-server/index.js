@@ -1,7 +1,7 @@
 const express = require('express')
 const proxyMiddleWare = require('http-proxy-middleware')
 
-const targetIp = 'http://touch.xueersi.com'
+const targetIp = 'xxxxxx'
 
 let app = express()
 
